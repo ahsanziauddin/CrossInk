@@ -1178,6 +1178,10 @@ inline bool hasSettingByName(const std::vector<SettingInfo>& allSettings, StrId 
                      [nameId](const auto& setting) { return setting.nameId == nameId; });
 }
 
+inline bool hasSideButtonChordSetting(const std::vector<SettingInfo>& allSettings) {
+  return deviceSupportsSideButtonChord(gpio) && hasSettingByName(allSettings, StrId::STR_SIDE_BUTTON_CHORD);
+}
+
 inline std::vector<SettingInfo> buildControlsSettingsParentList(const std::vector<SettingInfo>& allSettings) {
   const bool hasTiltPageTurnSetting = hasSettingByName(allSettings, StrId::STR_TILT_PAGE_TURN);
   const bool hasTiltPageTurnDirectionSetting = hasSettingByName(allSettings, StrId::STR_TILT_PAGE_TURN_DIRECTION);
@@ -1272,11 +1276,12 @@ inline std::vector<SettingInfo> buildControlsFrontButtonSettingsList(const std::
 
 inline std::vector<SettingInfo> buildControlsSideButtonSettingsList(const std::vector<SettingInfo>& allSettings) {
   std::vector<SettingInfo> settings;
-  settings.reserve(3 + (deviceSupportsSideButtonChord(gpio) ? 1u : 0u));
+  const bool hasChord = hasSideButtonChordSetting(allSettings);
+  settings.reserve(3 + (hasChord ? 1u : 0u));
   addSettingByName(settings, allSettings, StrId::STR_SIDE_BTN_LAYOUT);
   addSettingByKey(settings, allSettings, "sideButtonOrientationAware");
   addSettingByKey(settings, allSettings, "sideButtonLongPress");
-  if (deviceSupportsSideButtonChord(gpio)) {
+  if (hasChord) {
     addSettingByName(settings, allSettings, StrId::STR_SIDE_BUTTON_CHORD);
   }
   return settings;

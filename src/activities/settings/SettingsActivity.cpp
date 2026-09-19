@@ -327,6 +327,8 @@ void SettingsActivity::rebuildSettingsLists() {
   controlsHomeButtonSettings = buildControlsHomeButtonSettingsList(allSettings);
   controlsTapsGesturesSettings = buildControlsTapsGesturesSettingsList(allSettings);
   controlsTwoFingerSwipeSettings = buildControlsTwoFingerSwipeSettingsList(allSettings);
+  const size_t expectedSideButtonCount =
+      controlsSideButtonBaseCount + (hasSideButtonChordSetting(allSettings) ? 1u : 0u);
 #if CROSSINK_APP_CAP_TOUCH
   if (!gpio.hasTouch()) {
     controlsFrontButtonSettings = buildControlsFrontButtonSettingsList(allSettings);
@@ -340,7 +342,6 @@ void SettingsActivity::rebuildSettingsLists() {
                                        (hasSettingByName(allSettings, StrId::STR_TILT_PAGE_TURN_DIRECTION) ? 1u : 0u) +
                                        (hasSettingByName(allSettings, StrId::STR_NEXT_PAGE) ? 1u : 0u);
   const size_t expectedFrontButtonCount = hasTouch ? 0u : controlsFrontButtonCount;
-  const size_t expectedSideButtonCount = controlsSideButtonBaseCount + (hasTouch ? 1u : 0u);
 #else
   controlsFrontButtonSettings = buildControlsFrontButtonSettingsList(allSettings);
   controlsSideButtonSettings = buildControlsSideButtonSettingsList(allSettings);
@@ -350,7 +351,6 @@ void SettingsActivity::rebuildSettingsLists() {
                                        (hasSettingByName(allSettings, StrId::STR_TILT_PAGE_TURN_DIRECTION) ? 1u : 0u) +
                                        (hasSettingByName(allSettings, StrId::STR_NEXT_PAGE) ? 1u : 0u);
   constexpr size_t expectedFrontButtonCount = controlsFrontButtonCount;
-  constexpr size_t expectedSideButtonCount = controlsSideButtonBaseCount;
 #endif
   if (controlsSettings.size() != expectedControlsCount ||
       (gpio.hasHomeKey() && controlsHomeButtonSettings.size() != controlsHomeButtonCount) ||
