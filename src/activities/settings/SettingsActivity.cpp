@@ -297,10 +297,11 @@ void SettingsActivity::rebuildSettingsLists() {
 
   // Pick up any fonts uploaded/deleted over the web server since the last
   // reader activity ran — otherwise the font-family picker shows stale list.
-  sdFontSystem.refreshIfDirty();
+  const bool needsFonts = activeSubmenu == SettingAction::ReaderFontOptions;
+  if (needsFonts) sdFontSystem.refreshIfDirty();
 
   dictionaryRegistry.refreshIfDirty();
-  const auto allSettings = getSettingsList(&sdFontSystem.registry(), &dictionaryRegistry);
+  const auto allSettings = getSettingsList(needsFonts ? &sdFontSystem.registry() : nullptr, &dictionaryRegistry);
   displaySettings = buildGroupedDisplaySettingsList(allSettings);
 #ifndef SIMULATOR
   if (BoardConfig::isX4Pro() || CROSSINK_APP_DEVICE_X4CLASSIC) {
@@ -496,6 +497,7 @@ StrId SettingsActivity::activeSubmenuTitleId() const {
 void SettingsActivity::openSubmenu(SettingAction action) {
   parentSubmenu = activeSubmenu;
   activeSubmenu = action;
+  if (action == SettingAction::ReaderFontOptions) rebuildSettingsLists();
   setCurrentSettingsForCategory();
   selectedSettingIndex = 1;
   showSettingSelection = true;

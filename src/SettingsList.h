@@ -173,15 +173,13 @@ inline SettingInfo buildFontFamilySetting(const SdCardFontRegistry* registry) {
 
   // Capture registry families by copy for the lambdas
   std::vector<std::string> sdFamilyNames;
-  std::vector<std::vector<uint8_t>> sdFamilySizes;
+
   if (registry) {
     const auto& families = registry->getFamilies();
     sdFamilyNames.reserve(families.size());
-    sdFamilySizes.reserve(families.size());
+
     std::transform(families.begin(), families.end(), std::back_inserter(sdFamilyNames),
                    [](const SdCardFontFamilyInfo& f) { return f.name; });
-    std::transform(families.begin(), families.end(), std::back_inserter(sdFamilySizes),
-                   [](const SdCardFontFamilyInfo& f) { return f.availableSizes(); });
   }
 
   s.valueGetter = [sdFamilyNames]() -> uint8_t {
@@ -197,7 +195,7 @@ inline SettingInfo buildFontFamilySetting(const SdCardFontRegistry* registry) {
     return SETTINGS.fontFamily < CrossPointSettings::BUILTIN_FONT_COUNT ? SETTINGS.fontFamily : 0;
   };
 
-  s.valueSetter = [sdFamilyNames, sdFamilySizes](uint8_t v) {
+  s.valueSetter = [sdFamilyNames, registry](uint8_t v) {
     const uint8_t targetPointSize = SETTINGS.readerFontPointSize;
 
     if (v < CrossPointSettings::BUILTIN_FONT_COUNT) {
@@ -208,8 +206,10 @@ inline SettingInfo buildFontFamilySetting(const SdCardFontRegistry* registry) {
     } else {
       int sdIdx = v - CrossPointSettings::BUILTIN_FONT_COUNT;
       if (sdIdx < static_cast<int>(sdFamilyNames.size())) {
-        SETTINGS.readerFontPointSize =
-            sdFamilySizes[sdIdx][closestPointSizeIndex(sdFamilySizes[sdIdx], targetPointSize)];
+        const auto* family = registry ? registry->findFamily(sdFamilyNames[sdIdx]) : nullptr;
+        const auto sizes = family ? family->availableSizes() : std::vector<uint8_t>{};
+        if (sizes.empty()) return;
+        SETTINGS.readerFontPointSize = sizes[closestPointSizeIndex(sizes, targetPointSize)];
         strncpy(SETTINGS.sdFontFamilyName, sdFamilyNames[sdIdx].c_str(), sizeof(SETTINGS.sdFontFamilyName) - 1);
         SETTINGS.sdFontFamilyName[sizeof(SETTINGS.sdFontFamilyName) - 1] = '\0';
       }

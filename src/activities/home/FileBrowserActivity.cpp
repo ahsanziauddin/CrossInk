@@ -8,6 +8,7 @@
 #include <HalStorage.h>
 #include <I18n.h>
 #include <Memory.h>
+#include <SdCardFontSystem.h>
 #include <Txt.h>
 #include <Utf8.h>
 #include <Xtc.h>
@@ -438,6 +439,7 @@ void FileBrowserActivity::promptDeleteFile(const std::string& fullPath, const st
       return;
     }
     ImageFolderIndex::invalidateForPath(fullPath.c_str());
+    sdFontSystem.markRegistryDirtyForPath(fullPath.c_str());
 
     if (isPinnedSleepFavorite(fullPath)) {
       unpinSleepFavorite();
@@ -481,6 +483,7 @@ void FileBrowserActivity::promptDeleteDirectory(const std::string& fullPath, con
       return;
     }
     ImageFolderIndex::invalidateForPath(dirPath.c_str());
+    sdFontSystem.markRegistryDirtyForPath(dirPath.c_str());
 
     for (const auto& metadataPath : metadataPaths) {
       BookActions::clearFileMetadata(metadataPath);

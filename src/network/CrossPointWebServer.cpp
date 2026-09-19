@@ -944,6 +944,7 @@ void CrossPointWebServer::handleUpload(UploadState& state) const {
     }
 
     // Open file for writing - this can be slow due to FAT cluster allocation
+    sdFontSystem.markRegistryDirtyForPath(filePath.c_str());
     if (!Storage.openFileForWrite("WEB", filePath, state.file)) {
       state.error = "Failed to create file on SD card";
       LOG_DBG("WEB", "[UPLOAD] FAILED to create file: %s", filePath.c_str());
@@ -999,6 +1000,7 @@ void CrossPointWebServer::handleUpload(UploadState& state) const {
         filePath += state.fileName;
         clearBookCachePreservingUserState(filePath.c_str());
         ImageFolderIndex::invalidateForPath(filePath.c_str());
+        sdFontSystem.markRegistryDirtyForPath(filePath.c_str());
       }
     }
   } else if (upload.status == UPLOAD_FILE_ABORTED) {
@@ -1111,6 +1113,7 @@ void CrossPointWebServer::handleCreateFolder() const {
       return;
     }
     ImageFolderIndex::invalidateForPath(folderPath.c_str());
+    sdFontSystem.markRegistryDirtyForPath(folderPath.c_str());
     server->send(200, "text/plain", "Folder created: " + folderName);
   } else {
     LOG_DBG("WEB", "Failed to create folder: %s", folderPath.c_str());
@@ -1191,7 +1194,9 @@ void CrossPointWebServer::handleRename() const {
   if (success) {
     LOG_DBG("WEB", "Renamed file: %s -> %s", itemPath.c_str(), newPath.c_str());
     ImageFolderIndex::invalidateForPath(itemPath.c_str());
+    sdFontSystem.markRegistryDirtyForPath(itemPath.c_str());
     ImageFolderIndex::invalidateForPath(newPath.c_str());
+    sdFontSystem.markRegistryDirtyForPath(newPath.c_str());
     server->send(200, "text/plain", "Renamed successfully");
   } else {
     LOG_ERR("WEB", "Failed to rename file: %s -> %s", itemPath.c_str(), newPath.c_str());
@@ -1284,7 +1289,9 @@ void CrossPointWebServer::handleMove() const {
   if (success) {
     LOG_DBG("WEB", "Moved file: %s -> %s", itemPath.c_str(), newPath.c_str());
     ImageFolderIndex::invalidateForPath(itemPath.c_str());
+    sdFontSystem.markRegistryDirtyForPath(itemPath.c_str());
     ImageFolderIndex::invalidateForPath(newPath.c_str());
+    sdFontSystem.markRegistryDirtyForPath(newPath.c_str());
     server->send(200, "text/plain", "Moved successfully");
   } else {
     LOG_ERR("WEB", "Failed to move file: %s -> %s", itemPath.c_str(), newPath.c_str());
@@ -1350,6 +1357,7 @@ void CrossPointWebServer::handleDelete() const {
       continue;
     }
 
+    sdFontSystem.markRegistryDirtyForPath(itemPath.c_str());
     // Decide whether it's a directory or file by opening it
     bool success = false;
     HalFile f = Storage.open(itemPath.c_str());
@@ -1369,6 +1377,7 @@ void CrossPointWebServer::handleDelete() const {
       allSuccess = false;
     } else {
       ImageFolderIndex::invalidateForPath(itemPath.c_str());
+      sdFontSystem.markRegistryDirtyForPath(itemPath.c_str());
     }
   }
 
@@ -1964,6 +1973,7 @@ void CrossPointWebServer::onWebSocketEvent(uint8_t num, WStype_t type, uint8_t* 
                   filePath.c_str());
 
           // Open file for writing
+          sdFontSystem.markRegistryDirtyForPath(filePath.c_str());
           if (!Storage.openFileForWrite("WS", filePath, wsUploadFile)) {
             wsServer->sendTXT(num, "ERROR:Failed to create file");
             wsUploadInProgress = false;
@@ -1981,6 +1991,7 @@ void CrossPointWebServer::onWebSocketEvent(uint8_t num, WStype_t type, uint8_t* 
             LOG_DBG("WS", "Zero-byte upload complete: %s", filePath.c_str());
             clearBookCachePreservingUserState(filePath.c_str());
             ImageFolderIndex::invalidateForPath(filePath.c_str());
+            sdFontSystem.markRegistryDirtyForPath(filePath.c_str());
             wsServer->sendTXT(num, "DONE");
             wsLastProgressSent = 0;
             break;
@@ -2049,6 +2060,7 @@ void CrossPointWebServer::onWebSocketEvent(uint8_t num, WStype_t type, uint8_t* 
         filePath += wsUploadFileName;
         clearBookCachePreservingUserState(filePath.c_str());
         ImageFolderIndex::invalidateForPath(filePath.c_str());
+        sdFontSystem.markRegistryDirtyForPath(filePath.c_str());
 
         wsServer->sendTXT(num, "DONE");
         wsLastProgressSent = 0;
@@ -2082,6 +2094,10 @@ void CrossPointWebServer::handleFontList() const {
 
   bool firstFamily = true;
   for (const auto& family : families) {
+    // Hydrate and emit one family's paths at a time. Keeping every family's
+    // paths resident is what made larger catalogs exhaust the X3 network heap.
+    if (!family.ensureDetails()) continue;
+
     if (!firstFamily) json.append(",");
     firstFamily = false;
 
@@ -2123,6 +2139,7 @@ void CrossPointWebServer::handleFontList() const {
     }
     json.append("]}");
     json.flush();
+    family.releaseDetails();
     yield();
   }
 
@@ -2175,6 +2192,7 @@ void CrossPointWebServer::handleFontUploadData() {
       char path[192];
       FontInstaller::buildFontPath(family.c_str(), filename.c_str(), path, sizeof(path));
       fontUpload.filePath = path;
+      sdFontSystem.markRegistryDirty();
 
       if (!Storage.openFileForWrite("WEB", path, fontUpload.file)) {
         LOG_ERR("WEB", "Failed to open font file for write: %s", path);

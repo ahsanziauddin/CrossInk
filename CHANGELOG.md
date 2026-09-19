@@ -17,6 +17,7 @@
 - SD-card font prewarming releases temporary lookup buffers before allocating large glyph bitmaps.
 - UC8179 grayscale images use a slightly longer waveform for stronger midtone separation.
 - EPUB image preparation writes extracted data in chunks and reuses two cached images on PSRAM readers.
+- Font menus and the web portal use a persistent catalog that loads one family's details at a time, preventing crashes with larger font collections.
 - Web portal pages reuse browser-cached content after checking for firmware updates.
 - Rapid queued EPUB page turns defer text anti-aliasing and image loading until the final page, making intermediate turns faster.
 - Grayscale sleep screen images use the panel's direct grayscale waveform where supported, which folds the base frame into the grayscale pass instead of refreshing the screen separately first.
