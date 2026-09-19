@@ -24,6 +24,7 @@
 
 ### Fixed
 
+- The web settings page no longer offers the Up + Down shortcut on devices that cannot use it.
 - OPDS Wi-Fi selection and search entry stay awake while the user is actively choosing or typing.
 - USB Drive exits cleanly when a connected host is unplugged without ejecting first.
 - EPUB ordered lists show numbers, respect marker-free styles, and retain their container indentation.
