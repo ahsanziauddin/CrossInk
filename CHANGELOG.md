@@ -24,6 +24,7 @@
 
 ### Fixed
 
+- Frontlight schedule time pickers now use the compact number keypad from Go To screens.
 - X4 Classic's left/right tilt direction labels now match the physical page-turn direction.
 - Touch keyboards no longer show button-only hold and navigation hints.
 - The web settings page no longer offers the Up + Down shortcut on devices that cannot use it.

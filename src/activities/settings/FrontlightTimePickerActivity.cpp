@@ -24,8 +24,9 @@ constexpr int kMinuteWidth = 88;
 constexpr int kPeriodWidth = 96;
 constexpr int kFieldGap = 14;
 constexpr int kColonGap = 8;
-constexpr int kKeyboardRows = 5;
+constexpr int kKeyboardRows = 4;
 constexpr fui::ActionId kKeyboardAction = 1;
+constexpr int16_t kKeyboardOk = -2;
 
 struct PickerLayout {
   Rect hourRect;
@@ -176,12 +177,9 @@ void FrontlightTimePickerActivity::enterDigit(const uint8_t digit) {
 }
 
 void FrontlightTimePickerActivity::handleKeyboardValue(const int16_t value) {
-  if (value >= '0' && value <= '9') {
-    enterDigit(static_cast<uint8_t>(value - '0'));
-  } else if (value == fui::QWERTY_KEY_BACKSPACE) {
-    clearNumericEntry();
-    requestUpdate();
-  } else if (value == fui::QWERTY_KEY_ENTER) {
+  if (value >= 0 && value <= 9) {
+    enterDigit(static_cast<uint8_t>(value));
+  } else if (value == kKeyboardOk) {
     complete();
   }
 }
@@ -299,8 +297,6 @@ void FrontlightTimePickerActivity::render(RenderLock&&) {
   drawField(periodText, layout.periodRect, Field::Period);
 
   if (mappedInput.hasTouch()) {
-    const fui::KeyboardLayout& keyboardLayout =
-        fui::builtinKeyboardLayout(fui::KeyboardLayoutId::QwertyEn, false, false, /*numberRow=*/true);
     fui::GfxRendererTarget target(renderer);
     target.setFont(fui::GfxRendererTarget::FONT_SMALL, SMALL_FONT_ID);
     target.setFont(fui::GfxRendererTarget::FONT_BODY, UI_12_FONT_ID);
@@ -308,23 +304,41 @@ void FrontlightTimePickerActivity::render(RenderLock&&) {
     const fui::InputSnapshot noInput{};
     keyboardInteractions.beginPublishCycle();
     fui::Frame<48> frame(target, device, noInput, keyboardInteractions);
+    fui::ButtonProps backspace;
+    backspace.icon = fui::bitmapFromIcon(icon_backspace_28);
+    backspace.action = kKeyboardAction;
+    backspace.value = kKeyboardBackspace;
+    backspace.inputMask = static_cast<uint16_t>(fui::InputTouch | fui::InputLongPress);
+    backspace.enabled = numericEntryDigits > 0;
+    fui::button(frame,
+                {static_cast<int16_t>(layout.backspaceRect.x), static_cast<int16_t>(layout.backspaceRect.y),
+                 static_cast<int16_t>(layout.backspaceRect.width), static_cast<int16_t>(layout.backspaceRect.height)},
+                backspace);
 
-    fui::KeyboardProps props;
-    props.layout = &keyboardLayout;
-    props.keyAction = kKeyboardAction;
-    props.okLabel = tr(STR_OK_BUTTON);
-    props.shiftLabel = tr(STR_KEY_SHIFT);
-    props.modeLabel = tr(STR_KEY_MODE_SYMBOLS);
+    static constexpr const char* kDigitLabels[] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
+    fui::KeyGridKey keys[12];
+    for (int i = 0; i < 9; ++i) {
+      keys[i].label = kDigitLabels[i + 1];
+      keys[i].value = static_cast<int16_t>(i + 1);
+    }
+    keys[9].label = kDigitLabels[0];
+    keys[9].value = 0;
+    keys[10].kind = fui::KeyKind::Disabled;
+    keys[11].label = tr(STR_OK);
+    keys[11].kind = fui::KeyKind::Ok;
+    keys[11].value = kKeyboardOk;
+
+    fui::KeyGridProps props;
+    props.keys = keys;
+    props.rows = kKeyboardRows;
+    props.cols = 3;
+    props.action = kKeyboardAction;
     props.inputMask = static_cast<uint16_t>(fui::InputTouch | fui::InputLongPress);
     props.labelText.font = fui::GfxRendererTarget::FONT_BODY;
-    props.altText.font = fui::GfxRendererTarget::FONT_SMALL;
     const auto& metrics = UITheme::getInstance().getMetrics();
     props.gap = static_cast<int16_t>(metrics.keyboardKeySpacing);
-    props.padding = fui::Insets{0, 0, 0, 0};
     const fui::Rect kbRect = keyboardRect(renderer);
-    const int hintsTop = renderer.getScreenHeight() - metrics.buttonHintsHeight;
-    props.bottomHitOverflow = static_cast<int16_t>(std::max(0, hintsTop - (kbRect.y + kbRect.height)));
-    fui::keyboard(frame, kbRect, props);
+    fui::keyGrid(frame, kbRect, props);
     keyboardInteractions.publish();
     keyboardInteractionsReady.store(true, std::memory_order_release);
   }
