@@ -24,6 +24,7 @@
 
 ### Fixed
 
+- X4 Classic's left/right tilt direction labels now match the physical page-turn direction.
 - Touch keyboards no longer show button-only hold and navigation hints.
 - The web settings page no longer offers the Up + Down shortcut on devices that cannot use it.
 - OPDS Wi-Fi selection and search entry stay awake while the user is actively choosing or typing.
