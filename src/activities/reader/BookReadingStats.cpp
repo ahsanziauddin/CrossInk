@@ -72,24 +72,43 @@ std::string statsFileNameForVersion(const uint8_t version) {
   return std::string(buf);
 }
 
-bool openStatsFileForRead(const std::string& cachePath, FsFile& f) {
-  const std::string currentName = statsFileNameForVersion(STATS_FILE_VERSION);
-  const std::string currentPath = cachePath + "/" + currentName;
-  if (Storage.openFileForRead("STATS", currentPath, f)) {
-    return true;
-  }
+bool openRecoverableStatsFile(const std::string& path, FsFile& f) {
+  if (Storage.openFileForRead("STATS", path, f)) return true;
 
-  const std::string backupPath = currentPath + ".bak";
-  if (!Storage.exists(currentPath.c_str()) && Storage.exists(backupPath.c_str())) {
-    const bool restored = Storage.rename(backupPath.c_str(), currentPath.c_str());
-    if (restored) {
-      LOG_INF("STATS", "Recovered interrupted stats save: %s", currentPath.c_str());
-    } else {
-      LOG_ERR("STATS", "Could not restore stats backup; reading it directly: %s", backupPath.c_str());
+  for (const char* suffix : {".tmp", ".bak"}) {
+    const std::string recoveryPath = path + suffix;
+    if (!Storage.exists(recoveryPath.c_str())) continue;
+
+    // A temp file is newer than the backup, but it is safe to prefer only
+    // after the complete v5 payload reached storage. A partial temp falls
+    // through to the older, known-good backup.
+    if (strcmp(suffix, ".tmp") == 0) {
+      FsFile candidate;
+      if (!Storage.openFileForRead("STATS", recoveryPath, candidate)) continue;
+      uint8_t data[STATS_FILE_SIZE] = {};
+      const size_t fileSize = candidate.fileSize();
+      const int n = candidate.read(data, STATS_FILE_SIZE);
+      candidate.close();
+      if (fileSize != STATS_FILE_SIZE || n != STATS_FILE_SIZE || data[0] != STATS_FILE_VERSION) continue;
     }
-    if (Storage.openFileForRead("STATS", restored ? currentPath : backupPath, f)) {
+
+    if (Storage.rename(recoveryPath.c_str(), path.c_str())) {
+      LOG_INF("STATS", "Recovered interrupted stats save: %s", path.c_str());
+      if (Storage.openFileForRead("STATS", path, f)) return true;
+    }
+
+    if (Storage.openFileForRead("STATS", recoveryPath, f)) {
+      LOG_ERR("STATS", "Could not restore %s; reading recovery file directly", path.c_str());
       return true;
     }
+  }
+  return false;
+}
+
+bool openStatsFileForRead(const std::string& cachePath, FsFile& f) {
+  const std::string currentName = statsFileNameForVersion(STATS_FILE_VERSION);
+  if (openRecoverableStatsFile(cachePath + "/" + currentName, f)) {
+    return true;
   }
 
   // When bumping STATS_FILE_VERSION, this automatically tries the previous
@@ -340,7 +359,7 @@ void BookReadingStats::save(const std::string& cachePath) const {
     if (hadOriginal && !Storage.rename(backupPath.c_str(), statsPath.c_str())) {
       LOG_ERR("STATS", "Could not restore stats backup: %s", backupPath.c_str());
     }
-    Storage.remove(tmpPath.c_str());
+    if (hadOriginal && Storage.exists(statsPath.c_str())) Storage.remove(tmpPath.c_str());
     return;
   }
 

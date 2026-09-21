@@ -8,6 +8,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -45,6 +46,7 @@ class HalFile : public Print {
     cursor_ = 0;
     return true;
   }
+  size_t fileSize() const { return data_ ? data_->bytes.size() : 0; }
   explicit operator bool() const { return static_cast<bool>(data_); }
 
  private:
@@ -72,8 +74,7 @@ class HalStorage {
   }
 
   bool rename(const char* from, const char* to) {
-    if (failRenameFrom_ == from) {
-      failRenameFrom_.clear();
+    if (failRenameFrom_.erase(from) > 0) {
       return false;
     }
     const auto source = files_.find(from);
@@ -97,12 +98,12 @@ class HalStorage {
     return true;
   }
 
-  void failNextRenameFrom(std::string path) { failRenameFrom_ = std::move(path); }
+  void failNextRenameFrom(std::string path) { failRenameFrom_.insert(std::move(path)); }
   void failNextRemove(std::string path) { failRemovePath_ = std::move(path); }
 
  private:
   std::unordered_map<std::string, std::shared_ptr<HostFileData>> files_;
-  std::string failRenameFrom_;
+  std::unordered_set<std::string> failRenameFrom_;
   std::string failRemovePath_;
 };
 

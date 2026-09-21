@@ -42,6 +42,46 @@ TEST_F(BookReadingStatsAtomicTest, RecoversBackupAfterInterruptedReplacement) {
   EXPECT_FALSE(Storage.exists((statsPath + ".bak").c_str()));
 }
 
+TEST_F(BookReadingStatsAtomicTest, PrefersCompleteTempFileOverOlderBackup) {
+  statsWithSeconds(123).save(CACHE_PATH);
+  ASSERT_TRUE(Storage.rename(statsPath.c_str(), (statsPath + ".bak").c_str()));
+  statsWithSeconds(456).save(CACHE_PATH);
+  ASSERT_TRUE(Storage.rename(statsPath.c_str(), (statsPath + ".tmp").c_str()));
+
+  EXPECT_EQ(BookReadingStats::load(CACHE_PATH).totalReadingSeconds, 456U);
+  EXPECT_TRUE(Storage.exists(statsPath.c_str()));
+  EXPECT_FALSE(Storage.exists((statsPath + ".tmp").c_str()));
+}
+
+TEST_F(BookReadingStatsAtomicTest, IgnoresPartialTempFileAndRecoversBackup) {
+  statsWithSeconds(123).save(CACHE_PATH);
+  ASSERT_TRUE(Storage.rename(statsPath.c_str(), (statsPath + ".bak").c_str()));
+  FsFile tempFile;
+  ASSERT_TRUE(Storage.openFileForWrite("TEST", statsPath + ".tmp", tempFile));
+  ASSERT_EQ(tempFile.write(static_cast<uint8_t>(5)), 1U);
+  ASSERT_TRUE(tempFile.close());
+
+  EXPECT_EQ(BookReadingStats::load(CACHE_PATH).totalReadingSeconds, 123U);
+  EXPECT_TRUE(Storage.exists(statsPath.c_str()));
+  EXPECT_TRUE(Storage.exists((statsPath + ".tmp").c_str()));
+  EXPECT_FALSE(Storage.exists((statsPath + ".bak").c_str()));
+}
+
+TEST_F(BookReadingStatsAtomicTest, RecoversTempWhenPublishAndBackupRestoreFail) {
+  statsWithSeconds(123).save(CACHE_PATH);
+  Storage.failNextRenameFrom(statsPath + ".tmp");
+  Storage.failNextRenameFrom(statsPath + ".bak");
+
+  statsWithSeconds(999).save(CACHE_PATH);
+
+  EXPECT_FALSE(Storage.exists(statsPath.c_str()));
+  EXPECT_TRUE(Storage.exists((statsPath + ".tmp").c_str()));
+  EXPECT_TRUE(Storage.exists((statsPath + ".bak").c_str()));
+  EXPECT_EQ(BookReadingStats::load(CACHE_PATH).totalReadingSeconds, 999U);
+  EXPECT_TRUE(Storage.exists(statsPath.c_str()));
+  EXPECT_FALSE(Storage.exists((statsPath + ".tmp").c_str()));
+}
+
 TEST_F(BookReadingStatsAtomicTest, SuccessfulReplacementRemovesTransactionFiles) {
   statsWithSeconds(123).save(CACHE_PATH);
   statsWithSeconds(789).save(CACHE_PATH);
