@@ -63,6 +63,7 @@
 - Button-combo settings no longer offer Sleep because the same combo cannot wake the reader.
 - EPUB variation selectors no longer appear as missing-glyph boxes after otherwise supported symbols.
 - Cancelling Word Spacing on button readers no longer briefly changes the slider value.
+- The File Browser now displays decomposed Hangul and accented filenames copied from macOS correctly.
 
 ## [v1.5.1] - 2026-09-10
 
