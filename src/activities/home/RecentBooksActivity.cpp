@@ -25,7 +25,7 @@
 namespace fui = freeink::ui;
 
 namespace {
-constexpr size_t MAX_LIST_RECENT_BOOKS = 10;
+constexpr size_t MAX_LIST_RECENT_BOOKS = 20;
 // Hold threshold for the long-press action menu (firmware convention).
 constexpr unsigned long LONG_PRESS_MS = 1000;
 constexpr unsigned long ACTION_FEEDBACK_MS = 1000;
