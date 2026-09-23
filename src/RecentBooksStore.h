@@ -22,8 +22,6 @@ class RecentBooksStore : public PersistableStore<RecentBooksStore> {
  private:
   std::vector<RecentBook> recentBooks;
 
-  static constexpr int MAX_RECENT_BOOKS = 28;
-
   RecentBooksStore() = default;
   ~RecentBooksStore() = default;
   bool loadFromBinaryFile();
@@ -31,6 +29,10 @@ class RecentBooksStore : public PersistableStore<RecentBooksStore> {
   friend class PersistableStore<RecentBooksStore>;
 
  public:
+  // Largest Recent Books display count (CrossPointSettings::MAX_RECENT_BOOKS_DISPLAY_COUNT)
+  // plus headroom so the list still fills after entries for missing files are pruned.
+  static constexpr int MAX_RECENT_BOOKS = 58;
+
   static const char* getFilePath() { return "/.crosspoint/recent.json"; }
   void toJson(JsonDocument& doc) const;
   bool fromJson(JsonVariantConst doc);

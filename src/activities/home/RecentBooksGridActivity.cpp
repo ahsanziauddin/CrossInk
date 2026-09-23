@@ -217,10 +217,11 @@ void ensureReusableCoverPath(RecentBook& book) {
 void RecentBooksGridActivity::loadRecentBooks() {
   recentBooks.clear();
   const auto& books = RECENT_BOOKS.getBooks();
-  recentBooks.reserve(std::min(books.size(), static_cast<size_t>(MAX_GRID_BOOKS)));
+  const size_t maxBooks = SETTINGS.recentBooksDisplayCount;
+  recentBooks.reserve(std::min(books.size(), maxBooks));
 
   for (const auto& book : books) {
-    if (recentBooks.size() >= MAX_GRID_BOOKS) break;
+    if (recentBooks.size() >= maxBooks) break;
     if (!Storage.exists(book.path.c_str())) continue;
     recentBooks.push_back(BookState{book});
   }

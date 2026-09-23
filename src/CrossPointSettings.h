@@ -555,6 +555,8 @@ class CrossPointSettings : public PersistableStore<CrossPointSettings> {
   uint8_t uiTheme = LYRA;
   // Recent Books screen layout
   uint8_t recentBooksView = RECENT_BOOKS_LIST;
+  // How many books the Recent Books list and grid show
+  uint8_t recentBooksDisplayCount = DEFAULT_RECENT_BOOKS_DISPLAY_COUNT;
   // UI scale (list fonts + row heights); touch boards default one step larger
   uint8_t uiScale = defaultUiScale();
   // Sunlight fading compensation
@@ -652,6 +654,10 @@ class CrossPointSettings : public PersistableStore<CrossPointSettings> {
   static constexpr uint8_t SCREEN_MARGIN_SMALL_STEP = 1;
   static constexpr uint8_t SCREEN_MARGIN_LARGE_STEP = 5;
   static constexpr uint8_t MAX_WORD_SPACING = 4;
+  static constexpr uint8_t MIN_RECENT_BOOKS_DISPLAY_COUNT = 10;
+  static constexpr uint8_t MAX_RECENT_BOOKS_DISPLAY_COUNT = 50;
+  static constexpr uint8_t RECENT_BOOKS_DISPLAY_COUNT_STEP = 10;
+  static constexpr uint8_t DEFAULT_RECENT_BOOKS_DISPLAY_COUNT = MIN_RECENT_BOOKS_DISPLAY_COUNT;
   static constexpr uint16_t DEFAULT_READING_IDLE_TIME_THRESHOLD_SECONDS = 5 * 60;
   static constexpr uint16_t MIN_READING_IDLE_TIME_THRESHOLD_SECONDS = 30;
   static constexpr uint16_t MAX_READING_IDLE_TIME_THRESHOLD_SECONDS = 10 * 60;

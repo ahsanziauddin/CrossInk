@@ -9,6 +9,7 @@
 #include <memory>
 
 #include "BookActions.h"
+#include "CrossPointSettings.h"
 #include "FileBrowserActionActivity.h"
 #include "MappedInputManager.h"
 #include "RecentBooksStore.h"
@@ -25,7 +26,6 @@
 namespace fui = freeink::ui;
 
 namespace {
-constexpr size_t MAX_LIST_RECENT_BOOKS = 20;
 // Hold threshold for the long-press action menu (firmware convention).
 constexpr unsigned long LONG_PRESS_MS = 1000;
 constexpr unsigned long ACTION_FEEDBACK_MS = 1000;
@@ -40,10 +40,11 @@ RecentBooksActivity::RecentBooksActivity(GfxRenderer& renderer, MappedInputManag
 void RecentBooksActivity::loadRecentBooks() {
   recentBooks.clear();
   const auto& books = RECENT_BOOKS.getBooks();
-  recentBooks.reserve(std::min(books.size(), MAX_LIST_RECENT_BOOKS));
+  const size_t maxBooks = SETTINGS.recentBooksDisplayCount;
+  recentBooks.reserve(std::min(books.size(), maxBooks));
 
   for (const auto& book : books) {
-    if (recentBooks.size() >= MAX_LIST_RECENT_BOOKS) {
+    if (recentBooks.size() >= maxBooks) {
       break;
     }
     if (RecentBooksStore::isMissing(book)) {

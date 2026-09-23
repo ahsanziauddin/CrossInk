@@ -11,6 +11,11 @@
 #include <iterator>
 #include <utility>
 
+#include "CrossPointSettings.h"
+
+static_assert(RecentBooksStore::MAX_RECENT_BOOKS >= CrossPointSettings::MAX_RECENT_BOOKS_DISPLAY_COUNT,
+              "Recent Books store must hold at least as many books as the list can display");
+
 namespace {
 constexpr uint8_t RECENT_BOOKS_FILE_VERSION = 3;
 constexpr char RECENT_BOOKS_FILE_BIN[] = "/.crosspoint/recent.bin";
